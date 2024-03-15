@@ -1,0 +1,83 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "My Predict",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/evaluation/my/",
+            "program": "predict.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--base_model_path", "/home/models/Llama-2-7b-hf",
+                "--template", "alpaca",
+                "--lora_path", "../../output/CodeAlpaca-20k_1000_fedavg_c1s1_i1000_b1a1_l8192_r32a64_20240315132536/checkpoint-r1-s1000",
+                "--test_set_path", "../../datasets/DISC-Law-SFT/jud_doc_sum/jud_doc_sum_test_split.jsonl",
+                "--output_dir", "./prediction_output",
+                "--max_new_token", "2048",
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0",
+                "http_proxy": "http://10.249.42.241:41122",
+                "https_proxy": "http://10.249.42.241:41122",
+            }
+        },
+        {
+            "name": "Train",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main_sft.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--learning_rate", "5e-5",
+                "--model_name_or_path", "/home/models/Llama-2-7b-hf",
+                "--custom_local_dataset", "datasets/DISC-Law-SFT/jud_doc_sum/jud_doc_sum_train_split.jsonl",
+                "--dataset_sample", "1000",
+                "--fed_alg", "fedavg",
+                "--num_clients", "1",
+                "--sample_clients", "1",
+                "--max_steps", "1000",
+                "--num_rounds", "1",
+                "--batch_size", "1",
+                "--gradient_accumulation_steps", "1",
+                "--seq_length", "8192",
+                "--peft_lora_r", "32",
+                "--peft_lora_alpha", "64",
+                "--use_peft",
+                "--output_dir", "./output",
+                "--template", "alpaca",
+                "--load_in_8bit",
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0",
+                "http_proxy": "http://10.249.42.241:41122",
+                "https_proxy": "http://10.249.42.241:41122",
+            }
+        },
+        {
+            "name": "Predict MT",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/evaluation/open_ended/",
+            "program": "gen_model_answer_mt.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--base_model_path", "/home/models/Llama-2-7b-hf",
+                "--template", "alpaca",
+                "--lora_path", "../../output/alpaca-gpt4_20000_fedavg_c20s2_i5_b1a1_l512_r32a64_20240314221104/checkpoint-1"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0",
+                "http_proxy": "http://10.249.42.241:41122",
+                "https_proxy": "http://10.249.42.241:41122",
+            }
+        },
+
+    ]
+}
