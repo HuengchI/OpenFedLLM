@@ -1,3 +1,25 @@
+"""
+e.g.
+python main_sft.py --learning_rate 5e-5 \
+--model_name_or_path /home/models/Llama-2-7b-hf \
+--custom_local_dataset datasets/DISC-Law-SFT/jud_doc_sum/jud_doc_sum_train_split.jsonl \
+--dataset_sample 1000 \
+--fed_alg fedavg \
+--num_clients 1 \
+--sample_clients 1 \
+--max_steps 1000 \
+--num_rounds 1 \
+--batch_size 1 \
+--gradient_accumulation_steps 1 \
+--seq_length 8192 \
+--peft_lora_r 32 \
+--peft_lora_alpha 64 \
+--use_peft \
+--output_dir ./output \
+--template alpaca \
+--load_in_8bit 
+"""
+
 import copy
 import os
 from tqdm import tqdm
