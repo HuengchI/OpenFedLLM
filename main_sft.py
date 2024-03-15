@@ -2,10 +2,12 @@ import copy
 import os
 from tqdm import tqdm
 import numpy as np
+import pandas as pd
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import DataCollatorForCompletionOnlyLM
 from peft import get_peft_model, get_peft_model_state_dict, set_peft_model_state_dict, prepare_model_for_kbit_training
+from datasets import Dataset
 
 from utils import *
 from federated_learning import *
@@ -18,8 +20,20 @@ save_config(script_args, fed_args)
 print(script_args, fed_args)
 
 # ===== Load the dataset =====
-dataset = get_dataset(script_args.dataset_name, script_args.local_data_dir)
-dataset = process_sft_dataset(script_args.dataset_name, dataset, script_args.dataset_sample)
+if script_args.custom_local_dataset:
+    dataset = pd.read_json(script_args.custom_local_dataset, lines=True)
+    dataset = Dataset.from_pandas(dataset)
+    dataset = dataset.rename_column("input", "instruction")
+    dataset = dataset.rename_column("output", "response")
+    dataset = dataset.shuffle(seed=2023)
+    dataset_sample = script_args.dataset_sample
+    if dataset_sample:
+        num_sample = min(len(dataset), dataset_sample)
+        dataset = dataset.select(range(num_sample))
+    print(f">> ===== After processing, Dataset {script_args.custom_local_dataset} has {len(dataset)} examples. =====")
+else:
+    dataset = get_dataset(script_args.dataset_name, script_args.local_data_dir)
+    dataset = process_sft_dataset(script_args.dataset_name, dataset, script_args.dataset_sample)
 
 # ===== Split the dataset into clients =====
 local_datasets = split_dataset(fed_args, script_args, dataset)

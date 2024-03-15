@@ -1,6 +1,8 @@
-max_steps=10
-num_rounds=200
-batch_size=16
+#!/bin/bash
+
+max_steps=5
+num_rounds=1
+batch_size=1
 gradient_accumulation_steps=1
 seq_length=512
 num_clients=20
@@ -12,13 +14,13 @@ lr=5e-5
 # local_data_dir=""       # you may uncomment this line if your data is stored locally and include it in the python command
 dataset_name="vicgalle/alpaca-gpt4"
 dataset_sample=20000
-model_name_or_path="meta-llama/Llama-2-7b-hf"
+model_name_or_path="/home/models/Llama-2-7b-hf"
 output_dir=./output
 
-gpu=2
+gpu=0
 fed_alg="fedavg"
 
-CUDA_VISIBLE_DEVICES=$gpu python main_sft.py \
+echo CUDA_VISIBLE_DEVICES=$gpu python main_sft.py \
  --learning_rate $lr \
  --model_name_or_path $model_name_or_path \
  --dataset_name $dataset_name \
@@ -34,6 +36,6 @@ CUDA_VISIBLE_DEVICES=$gpu python main_sft.py \
  --peft_lora_r $lora_r \
  --peft_lora_alpha $lora_alpha \
  --use_peft \
- --load_in_8bit \
  --output_dir $output_dir \
  --template "alpaca" \
+ --load_in_8bit
