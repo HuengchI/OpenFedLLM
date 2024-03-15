@@ -1,5 +1,12 @@
-# This python file is adapted from https://github.com/lm-sys/FastChat/blob/main/fastchat/llm_judge/gen_model_answer.py 
-# This file is especially for MT-Bench, which is a multi-turn open-ended dialogue dataset.
+"""
+e.g.
+python predict.py --base_model_path /home/models/Llama-2-7b-hf \
+--template alpaca \
+--lora_path ../../output/CodeAlpaca-20k_1000_fedavg_c1s1_i1000_b1a1_l8192_r32a64_20240315132536/checkpoint-r1-s1000 \
+--test_set_path ../../datasets/DISC-Law-SFT/jud_doc_sum/jud_doc_sum_test_split.jsonl \
+--output_dir ./prediction_output \
+--max_new_token 2048
+"""
 
 import json
 import argparse
@@ -71,7 +78,7 @@ output_file_path = os.path.join(args.output_dir, f"{datetime.now().strftime('%Y%
 print(f">> Outputs are saving to {output_file_path}")
 
 pbar = tqdm(total=len(test_ds))
-for _, row in tqdm(test_ds[:3].iterrows()):
+for _, row in tqdm(test_ds.iterrows()):
 
     temperature = 0.7
 
