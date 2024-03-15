@@ -5,29 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "My Predict",
-            "type": "debugpy",
-            "request": "launch",
-            "cwd": "${workspaceFolder}/evaluation/my/",
-            "program": "predict.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "--base_model_path", "/home/models/Llama-2-7b-hf",
-                "--template", "alpaca",
-                "--lora_path", "../../output/CodeAlpaca-20k_1000_fedavg_c1s1_i1000_b1a1_l8192_r32a64_20240315132536/checkpoint-r1-s1000",
-                "--test_set_path", "../../datasets/DISC-Law-SFT/jud_doc_sum/jud_doc_sum_test_split.jsonl",
-                "--output_dir", "./prediction_output",
-                "--max_new_token", "2048",
-            ],
-            "env": {
-                "CUDA_VISIBLE_DEVICES": "0",
-                "http_proxy": "http://10.249.42.241:41122",
-                "https_proxy": "http://10.249.42.241:41122",
-            }
-        },
-        {
-            "name": "Train",
+            "name": "My Train",
             "type": "debugpy",
             "request": "launch",
             "program": "main_sft.py",
@@ -52,6 +30,47 @@
                 "--output_dir", "./output",
                 "--template", "alpaca",
                 "--load_in_8bit",
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0",
+                "http_proxy": "http://10.249.42.241:41122",
+                "https_proxy": "http://10.249.42.241:41122",
+            }
+        },
+        {
+            "name": "My Predict",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/evaluation/legal/",
+            "program": "predict.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--base_model_path", "/home/models/Llama-2-7b-hf",
+                "--template", "alpaca",
+                "--lora_path", "../../output/CodeAlpaca-20k_1000_fedavg_c1s1_i1000_b1a1_l8192_r32a64_20240315132536/checkpoint-r1-s1000",
+                "--test_set_path", "../../datasets/DISC-Law-SFT/jud_doc_sum/jud_doc_sum_test_split.jsonl",
+                "--output_dir", "./prediction_output",
+                "--max_new_token", "2048",
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0",
+                "http_proxy": "http://10.249.42.241:41122",
+                "https_proxy": "http://10.249.42.241:41122",
+            }
+        },
+        {
+            "name": "My Score",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/evaluation/legal/",
+            "program": "score.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--prediction_set_path", "prediction_output/20240315163646.jsonl",
+                "--test_set_path", "../../datasets/DISC-Law-SFT/jud_doc_sum/jud_doc_sum_test_split.jsonl",
+                "--output_dir", "score_output"
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "0",
