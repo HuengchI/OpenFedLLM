@@ -1,6 +1,6 @@
 """
 e.g.
-python score.py --prediction_set_path 'prediction_output/20240315163646.jsonl' \
+python score.py --prediction_set_path 'prediction_output/20240315170124.jsonl' \
 --test_set_path '../../datasets/DISC-Law-SFT/jud_doc_sum/jud_doc_sum_test_split.jsonl' \
 --output_dir 'score_output'
 """
