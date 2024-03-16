@@ -60,7 +60,15 @@ class ScriptArguments:
     dpo_beta: Optional[float] = field(default=0.1, metadata={"help": "the beta parameter of DPO"})
     dataset_sample: Optional[int] = field(default=20000, metadata={"help": "the number of samples to use from the dataset"})
     local_data_dir: Optional[str] = field(default=None, metadata={"help": "the local data directory if you want to use downloaded data"})
+    
     custom_local_dataset: Optional[str] = field(default=None, metadata={"help": "Custom dataset file you want to use."})
+    deepspeed: Optional[str] = field(default=None)
+    local_rank: Optional[int] = field(default=-1)
+    bf16: Optional[bool] = field(default=False)
+    optim: Optional[str] = field(default="adamw_torch")
+    lr_scheduler_type: Optional[str] = field(default="linear")
+    flash_attention: Optional[bool] = field(default=False, metadata={"help": "Enable FlashAttention-2"})
+
 
 parser = HfArgumentParser((ScriptArguments, FedArguments))
 script_args, fed_args = parser.parse_args_into_dataclasses()
@@ -96,7 +104,10 @@ def get_training_args(script_args, new_lr):
         push_to_hub=script_args.push_to_hub,
         hub_model_id=script_args.hub_model_id,
         gradient_checkpointing=script_args.gradient_checkpointing,
-        lr_scheduler_type="constant",
+        deepspeed=script_args.deepspeed,
+        local_rank=script_args.local_rank,
+        optim=script_args.optim,
+        lr_scheduler_type=script_args.lr_scheduler_type,
     )
     return training_args
 
@@ -108,13 +119,22 @@ def get_model_config(script_args):
             load_in_8bit=script_args.load_in_8bit, load_in_4bit=script_args.load_in_4bit
         )
         # Copy the model to each device
-        device_map = {"": Accelerator().local_process_index}
+        device_map = None
+        if not script_args.deepspeed:
+            device_map = {"": Accelerator().local_process_index}
         torch_dtype = torch.bfloat16
     else:
         device_map = None
         quantization_config = None
         torch_dtype = None
-    return device_map, quantization_config, torch_dtype
+        if script_args.bf16:
+            torch_dtype=torch.bfloat16
+
+    other_kwargs = {}
+    if script_args.flash_attention:
+        other_kwargs['attn_implementation']="flash_attention_2"
+
+    return device_map, quantization_config, torch_dtype, other_kwargs
 
 def save_config(script_args, fed_args):
     now_time = (datetime.now()).strftime("%Y%m%d%H%M%S")

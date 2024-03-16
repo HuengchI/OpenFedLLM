@@ -45,8 +45,8 @@ print(script_args, fed_args)
 if script_args.custom_local_dataset:
     dataset = pd.read_json(script_args.custom_local_dataset, lines=True)
     dataset = Dataset.from_pandas(dataset)
-    dataset = dataset.rename_column("input", "instruction")
-    dataset = dataset.rename_column("output", "response")
+    dataset = dataset.rename_column("source_orig", "instruction")
+    dataset = dataset.rename_column("target", "response")
     dataset = dataset.shuffle(seed=2023)
     dataset_sample = script_args.dataset_sample
     if dataset_sample:
@@ -62,7 +62,7 @@ local_datasets = split_dataset(fed_args, script_args, dataset)
 sample_num_list = [len(local_datasets[i]) for i in range(fed_args.num_clients)]
 
 # ===== Get model config =====
-device_map, quantization_config, torch_dtype = get_model_config(script_args)
+device_map, quantization_config, torch_dtype, other_kwargs = get_model_config(script_args)
 
 model = AutoModelForCausalLM.from_pretrained(
     script_args.model_name_or_path,
@@ -70,6 +70,7 @@ model = AutoModelForCausalLM.from_pretrained(
     device_map=device_map,
     trust_remote_code=script_args.trust_remote_code,
     torch_dtype=torch_dtype,
+    **other_kwargs,
 )
 
 if script_args.load_in_8bit or script_args.load_in_4bit:
@@ -79,6 +80,9 @@ if script_args.load_in_8bit or script_args.load_in_4bit:
 
 model = get_peft_model(model, peft_config)
 model.print_trainable_parameters()
+
+if training_args.gradient_checkpointing:
+    model.enable_input_require_grads()
 
 # ===== Define the global and local models =====
 global_dict = copy.deepcopy(get_peft_model_state_dict(model))
