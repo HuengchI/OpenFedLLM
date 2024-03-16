@@ -38,14 +38,25 @@ from config import get_config, save_config, get_model_config, get_training_args
 # ===== Define the arguments =====
 script_args, fed_args, peft_config = get_config()
 training_args = get_training_args(script_args, script_args.learning_rate)
-save_config(script_args, fed_args)
+if is_main_process(script_args):
+    save_config(script_args, fed_args)
 print(script_args, fed_args)
 
 # ===== Load the dataset =====
 if script_args.custom_local_dataset:
     dataset = pd.read_json(script_args.custom_local_dataset, lines=True)
+    # tag instruction
+    SPEER_INSTRUCT = "Retrieve a subset of the medical entities in double brackets {{}} and use them to generate the BRIEF HOSPITAL COURSE summary."
+    tqdm.pandas()
+
+    def prepend_instruction(row):
+        row['source'] = f"{SPEER_INSTRUCT}\n{row['source']}"
+        return row
+
+    dataset = dataset.progress_apply(prepend_instruction, axis=1)
+
     dataset = Dataset.from_pandas(dataset)
-    dataset = dataset.rename_column("source_orig", "instruction")
+    dataset = dataset.rename_column("source", "instruction")
     dataset = dataset.rename_column("target", "response")
     dataset = dataset.shuffle(seed=2023)
     dataset_sample = script_args.dataset_sample
@@ -154,7 +165,8 @@ for round in tqdm(range(fed_args.num_rounds)):
     set_peft_model_state_dict(model, global_dict)   # Update global model
 
     # ===== Save the model =====
-    if (round+1) % 50 == 0:
-        trainer.save_model(os.path.join(script_args.output_dir, f"checkpoint-{round+1}"))
-    
-    np.save(os.path.join(script_args.output_dir, "training_loss.npy"), np.array(training_loss))
+    if is_main_process(script_args):
+        if (round+1) % 50 == 0:
+            trainer.save_model(os.path.join(script_args.output_dir, f"checkpoint-{round+1}"))
+        
+        np.save(os.path.join(script_args.output_dir, "training_loss.npy"), np.array(training_loss))
