@@ -1,8 +1,26 @@
 import datasets
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 import pandas as pd
 from .conversation import get_conv_template
 from functools import partial
+
+def get_custom_local_dataset(custom_local_dataset:str, dataset_sample, post_df_loading_process_fn = None):
+    dataset = pd.read_json(custom_local_dataset, lines=True)
+
+    if post_df_loading_process_fn is not None:
+        dataset = post_df_loading_process_fn(dataset)
+
+    dataset = Dataset.from_pandas(dataset)
+    dataset = dataset.rename_column("source", "instruction")
+    dataset = dataset.rename_column("target", "response")
+
+    dataset = dataset.shuffle(seed=2023)
+
+    if dataset_sample:
+        num_sample = min(len(dataset), dataset_sample)
+        dataset = dataset.select(range(num_sample))
+    print(f">> ===== After sampling, Dataset {custom_local_dataset} has {len(dataset)} examples. =====")
+    return dataset
 
 def get_dataset(dataset_name, local_data_dir=None):
 
@@ -53,6 +71,7 @@ def process_sft_dataset(dataset_name, dataset, dataset_sample):
         dataset = dataset.select(range(num_sample))
     print(f">> ===== After processing, Dataset {dataset_name} has {len(dataset)} examples. =====")
     return dataset
+
 
 def alpaca_format(example):
     if example['input'] == "":

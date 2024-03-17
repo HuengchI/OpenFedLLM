@@ -24,16 +24,15 @@ import copy
 import os
 from tqdm import tqdm
 import numpy as np
-import pandas as pd
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import DataCollatorForCompletionOnlyLM
 from peft import get_peft_model, get_peft_model_state_dict, set_peft_model_state_dict, prepare_model_for_kbit_training
-from datasets import Dataset
 
 from utils import *
 from federated_learning import *
 from config import get_config, save_config, get_model_config, get_training_args
+import utils.instructions
 
 # ===== Define the arguments =====
 script_args, fed_args, peft_config = get_config()
@@ -44,26 +43,9 @@ print(script_args, fed_args)
 
 # ===== Load the dataset =====
 if script_args.custom_local_dataset:
-    dataset = pd.read_json(script_args.custom_local_dataset, lines=True)
-    # tag instruction
-    SPEER_INSTRUCT = "Retrieve a subset of the medical entities in double brackets {{}} and use them to generate the BRIEF HOSPITAL COURSE summary."
-    tqdm.pandas()
-
-    def prepend_instruction(row):
-        row['source'] = f"{SPEER_INSTRUCT}\n{row['source']}"
-        return row
-
-    dataset = dataset.progress_apply(prepend_instruction, axis=1)
-
-    dataset = Dataset.from_pandas(dataset)
-    dataset = dataset.rename_column("source", "instruction")
-    dataset = dataset.rename_column("target", "response")
-    dataset = dataset.shuffle(seed=2023)
-    dataset_sample = script_args.dataset_sample
-    if dataset_sample:
-        num_sample = min(len(dataset), dataset_sample)
-        dataset = dataset.select(range(num_sample))
-    print(f">> ===== After processing, Dataset {script_args.custom_local_dataset} has {len(dataset)} examples. =====")
+    dataset = get_custom_local_dataset(script_args.custom_local_dataset,
+                                       script_args.dataset_sample,
+                                       post_df_loading_process_fn=lambda ds_df: df_prepend_instruction(ds_df, 'source', utils.instructions.SPEER.SPEER))
 else:
     dataset = get_dataset(script_args.dataset_name, script_args.local_data_dir)
     dataset = process_sft_dataset(script_args.dataset_name, dataset, script_args.dataset_sample)
