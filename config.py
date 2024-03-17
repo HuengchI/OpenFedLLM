@@ -62,6 +62,7 @@ class ScriptArguments:
     local_data_dir: Optional[str] = field(default=None, metadata={"help": "the local data directory if you want to use downloaded data"})
     
     custom_local_dataset: Optional[str] = field(default=None, metadata={"help": "Custom dataset file you want to use."})
+    instruction_name: Optional[str] = field(default=None, metadata={"help": "Paired with custom dataset, the instruction you need with your task"})
     deepspeed: Optional[str] = field(default=None)
     local_rank: Optional[int] = field(default=-1)
     bf16: Optional[bool] = field(default=False)

@@ -43,9 +43,11 @@ print(script_args, fed_args)
 
 # ===== Load the dataset =====
 if script_args.custom_local_dataset:
+    assert script_args.instruction_name is not None
+    print(f">> ==================== Instruction {script_args.instruction_name} ====================")
     dataset = get_custom_local_dataset(script_args.custom_local_dataset,
                                        script_args.dataset_sample,
-                                       post_df_loading_process_fn=lambda ds_df: df_prepend_instruction(ds_df, 'source', utils.instructions.SPEER.SPEER))
+                                       post_df_loading_process_fn=lambda ds_df: df_prepend_instruction(ds_df, 'source', eval(f"utils.instructions.SPEER.{script_args.instruction_name}")))
 else:
     dataset = get_dataset(script_args.dataset_name, script_args.local_data_dir)
     dataset = process_sft_dataset(script_args.dataset_name, dataset, script_args.dataset_sample)
