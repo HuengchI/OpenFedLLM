@@ -54,7 +54,7 @@ class ScriptArguments:
     save_total_limit: Optional[int] = field(default=10, metadata={"help": "Limits total number of checkpoints."})
     push_to_hub: Optional[bool] = field(default=False, metadata={"help": "Push the model to HF Hub"})
     hub_model_id: Optional[str] = field(default=None, metadata={"help": "The name of the model on HF Hub"})
-    gradient_checkpointing: Optional[bool] = field(default=True, metadata={"help": "Enable gradient checkpointing"})
+    gradient_checkpointing: Optional[bool] = field(default=False, metadata={"help": "Enable gradient checkpointing"})
     template: Optional[str] = field(default="alpaca", metadata={"help": "the template to use"})
     seed: Optional[int] = field(default=2023, metadata={"help": "the seed to use"})
     dpo_beta: Optional[float] = field(default=0.1, metadata={"help": "the beta parameter of DPO"})
@@ -82,6 +82,7 @@ if script_args.use_peft:
         lora_dropout=0.05,
         bias="none",
         task_type="CAUSAL_LM",
+        target_modules=["att_proj"]
     )
 else:
     peft_config = None
