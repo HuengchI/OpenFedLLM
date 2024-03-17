@@ -1,64 +1,89 @@
 """
 e.g.
 python score.py --prediction_set_path 'prediction_output/20240315170124.jsonl' \
---test_set_path '../../datasets/DISC-Law-SFT/jud_doc_sum/jud_doc_sum_test_split.jsonl' \
---output_dir 'score_output'
+--test_set_path '../../datasets/DISC-Law-SFT/jud_doc_sum/jud_doc_sum_test_split.jsonl'
 """
 
 import argparse
 import os
+from typing import Optional
 from tqdm import tqdm
-from datetime import datetime
 import pandas as pd
+from dataclasses import dataclass, field
+from transformers import HfArgumentParser
 
 import sys
-UTILS_LIB_PATH = "../../"
-sys.path.append(os.path.abspath(UTILS_LIB_PATH))
-from utils.metrics_predefined import RougeMetric, BleuMetric, ZHBertScoreMetric
+THRID_PARTY_LIB_PATH = (
+    "../../",
+    "../../../SPEER/",
+)
+for path in THRID_PARTY_LIB_PATH:
+    path = os.path.abspath(path)
+    if path not in sys.path:
+        sys.path.append(path)
 
+from utils.metrics_predefined import RougeMetric, BleuMetric, ZHBertScoreMetric
+from esg_tools import metric_compute_HR, metric_compute_SGR
+
+
+@dataclass
+class ScriptArguments:
+    prediction_set_path: Optional[str] = field()
+    test_set_path: Optional[str] = field()
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--prediction_set_path", type=str, default=None, required=True)
-parser.add_argument("--test_set_path", type=str, default=None, required=True)
-parser.add_argument("--output_dir", type=str, default=None, required=True)
-
-args = parser.parse_args()
+parser = HfArgumentParser(ScriptArguments)
+args = parser.parse_args_into_dataclasses()[0]
 
 
 # ============= Load Datasets =============
-# prediction_df = pd.read_json('prediction_output/20240315155546.jsonl', lines=True)
 prediction_df = pd.read_json(args.prediction_set_path, lines=True)
+prediction_df = prediction_df.rename(columns={'output': 'metric_gen'})
 
-# test_df = pd.read_json('../../datasets/DISC-Law-SFT/jud_doc_sum/jud_doc_sum_test_split.jsonl', lines=True)
 test_df = pd.read_json(args.test_set_path, lines=True)
-test_df = test_df.rename(columns={'output': 'ref'})
+test_df = test_df.rename(columns={'source_orig': 'metric_src'}) # for metric calculation
+test_df = test_df.rename(columns={'target': 'metric_ref'})
+test_df = test_df.rename(columns={'example_id': 'id'})
+test_df = test_df[['metric_src', 'metric_ref', 'id']]
 
 # ============= Process Datasets =============
-prediction_df = prediction_df.rename(columns={'output': 'gen'})
 result_df = pd.merge(prediction_df, test_df, on='id', how='left')
 
 # ============= Compute Metrics =============
 def compute_summary_metric(row):
-    decoded_labels = [row['ref']]
-    decoded_preds = [row['gen']]
+    src_txts = [row['metric_src']]
+    tgt_txts = [row['metric_ref']]
+    gen_txts = [row['metric_gen']]
+
+    # Entity-based Scores: SGR & HR
+    SGRs = []
+    HRs = []
+    for src_txt, gen_txt, tgt_txt in zip(src_txts, gen_txts, tgt_txts):
+        sgr = metric_compute_SGR(src_txt, tgt_txt, gen_txt)
+        hr = metric_compute_HR(src_txt, gen_txt)
+        SGRs.append(sgr)
+        HRs.append(hr)
+
+    row['SGR'] = SGRs[0]
+    row['HR'] = HRs[0]
 
     # rouge
     rouge_scorer = RougeMetric()
-    rouge_dict = rouge_scorer(decoded_preds, decoded_labels)
+    rouge_dict = rouge_scorer(gen_txts, tgt_txts)
 
     for k,v in rouge_dict['score_details_per_sample'].items():# rouge-1, rouge-2, rouge-l
         row[k] = v[0]
 
     # bleu-4
     bleu_scorer = BleuMetric()
-    bleu_dict = bleu_scorer(decoded_preds, decoded_labels)
+    bleu_dict = bleu_scorer(gen_txts, tgt_txts)
 
     for k,v in bleu_dict['score_details_per_sample'].items():# bleu-4
         row[k] = v[0]
 
     # bert score
     bert_scorer = ZHBertScoreMetric()
-    bs_dict = bert_scorer(decoded_preds, decoded_labels)
+    bs_dict = bert_scorer(gen_txts, tgt_txts)
 
     row['bs_f1'] = bs_dict['score_details_per_sample']['F1'][0]
     row['bs_p'] = bs_dict['score_details_per_sample']['P'][0]
@@ -69,9 +94,9 @@ tqdm.pandas()
 result_df = result_df.progress_apply(compute_summary_metric, axis=1)
 
 # ============= Save Results =============
-os.makedirs(args.output_dir, exist_ok=True)
-output_file_path = os.path.join(args.output_dir, f"{datetime.now().strftime('%Y%m%d%H%M%S')}.jsonl")
+output_dir = os.path.dirname(args.prediction_set_path)
+output_file_path = os.path.join(output_dir, "metric_scores.jsonl")
 
-metric_only_result_df = result_df.drop(columns=['input', 'ref', 'gen'])
+metric_only_result_df = result_df.drop(columns=['metric_src', 'metric_ref', 'metric_gen'])
 metric_only_result_df.to_json(output_file_path, lines=True, orient='records')
 print(f">> Metric outputs saved to {output_file_path}")

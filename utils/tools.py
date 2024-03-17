@@ -1,6 +1,8 @@
+import os
+import json
 from tqdm.auto import tqdm
 from functools import partial
-
+from dataclasses import asdict
 
 def is_main_process(script_args):
     return script_args.local_rank <= 0
@@ -19,3 +21,8 @@ def df_prepend_instruction(df, target_column_name, instruction_str):
                            axis=1)
 
     return df
+
+
+def dump_args(args, output_dir):
+   with open(os.path.join(output_dir, "args.json"), "w") as f:
+        json.dump(asdict(args), f, indent=4)

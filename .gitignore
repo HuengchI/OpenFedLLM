@@ -1,6 +1,8 @@
 **/*.jsonl
 
 **/saved_output/*
+**/prediction_output/*
+**/.cache_get_all_entities_raw
 
 evaluation/open_ended/data/*/model_answer/*
 evaluation/open_ended/data/*/model_judgment/*
