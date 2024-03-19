@@ -96,7 +96,6 @@
                 "1800",
                 ],
             "env": {
-                "CUDA_VISIBLE_DEVICES": "0",
                 "http_proxy": "http://10.249.42.241:41122",
                 "https_proxy": "http://10.249.42.241:41122",
             }
@@ -105,39 +104,21 @@
             "name": "My Score",
             "type": "debugpy",
             "request": "launch",
-            "cwd": "${workspaceFolder}/evaluation/clinical/",
-            "program": "score.py",
+            "program": "//data/huengchi/.bin/anaconda3/envs/torch-2.1-py-3.10/bin/deepspeed",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
-                "--prediction_set_path", "../../evaluation/clinical/prediction_output/20240318110341/predictions.jsonl",
-                "--test_set_path", "../../datasets/mimic-iii-notes/NOTES_len6K_src5900_cov0.5_w_ESGs_test_split.jsonl",
+                "--include=localhost:2",
+                "evaluation/clinical/score.py",
+                "--prediction_set_path",
+                "/data/huengchi/Research/clinical/OpenFedLLM/outputs/OLMO-1B-Notes_20240319215043/evals/predictions.jsonl",
+                "--test_set_path",
+                "/data/huengchi/Research/clinical/OpenFedLLM/datasets/mimic-iii-notes/NOTES_len6K_src5900_cov0.5_w_ESGs_test_split.jsonl",
             ],
             "env": {
-                "CUDA_VISIBLE_DEVICES": "0",
                 "http_proxy": "http://10.249.42.241:41122",
                 "https_proxy": "http://10.249.42.241:41122",
             }
-        },
-        {
-            "name": "Predict MT",
-            "type": "debugpy",
-            "request": "launch",
-            "cwd": "${workspaceFolder}/evaluation/open_ended/",
-            "program": "gen_model_answer_mt.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "--base_model_path", "/home/models/Llama-2-7b-hf",
-                "--template", "alpaca",
-                "--lora_path", "../../output/alpaca-gpt4_20000_fedavg_c20s2_i5_b1a1_l512_r32a64_20240314221104/checkpoint-1"
-            ],
-            "env": {
-                "CUDA_VISIBLE_DEVICES": "0",
-                "http_proxy": "http://10.249.42.241:41122",
-                "https_proxy": "http://10.249.42.241:41122",
-            }
-        },
-
+        }
     ]
 }

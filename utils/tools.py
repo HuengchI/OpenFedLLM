@@ -23,6 +23,6 @@ def df_prepend_instruction(df, target_column_name, instruction_str):
     return df
 
 
-def dump_args(args, output_dir):
-   with open(os.path.join(output_dir, "args.json"), "w") as f:
+def dump_args(args, output_dir, file_name="args.json"):
+   with open(os.path.join(output_dir, file_name), "w") as f:
         json.dump(asdict(args), f, indent=4)

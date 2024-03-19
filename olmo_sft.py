@@ -11,7 +11,7 @@ from federated_learning import *
 from config import get_config, save_config, get_model_config, get_training_args
 
 # ===== Define the arguments =====
-script_args, _, _ = get_config()
+script_args = get_config()
 training_args = TrainingArguments(
         output_dir=script_args.output_dir,
         per_device_train_batch_size=script_args.batch_size,
@@ -45,7 +45,6 @@ if is_main_process(script_args):
 print(script_args)
 
 # ===== Load the dataset =====
-print(f">> ==================== Instruction {script_args.instruction_name} ====================")
 dataset = get_custom_local_dataset(script_args.custom_local_dataset,
                                        script_args.dataset_sample,
                                        post_df_loading_process_fn=None)

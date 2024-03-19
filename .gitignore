@@ -1,7 +1,7 @@
 **/*.jsonl
 
-**/saved_output/*
-**/prediction_output/*
+wandb/
+outputs/
 **/.cache_get_all_entities_raw
 
 evaluation/open_ended/data/*/model_answer/*

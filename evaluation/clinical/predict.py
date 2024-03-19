@@ -19,28 +19,17 @@ sys.path.append(os.path.abspath(UTILS_LIB_PATH))
 from utils.template import build_generation_prompt
 from utils import dump_args
 
-temperature_config = {
-    "writing": 0.7,
-    "roleplay": 0.7,
-    "extraction": 0.0,
-    "math": 0.0,
-    "coding": 0.0,
-    "reasoning": 0.0,
-    "stem": 0.1,
-    "humanities": 0.1,
-    "arena-hard-200": 0.0,
-}
 
 @dataclass
 class ScriptArguments:
     max_new_token: Optional[int] = field()
+    data_sample: Optional[int] = field(default=200000)
     base_model_path: Optional[str] = field(default=None)
     lora_path: Optional[str] = field(default=None)
     template: Optional[str] = field(default=None)
     test_set_path: Optional[str] = field(default=None)
     output_dir: Optional[str] = field(default=None)
     local_rank: Optional[int] = field(default=-1)
-
 
 parser = argparse.ArgumentParser()
 parser = HfArgumentParser(ScriptArguments)
@@ -73,6 +62,10 @@ tokenizer = AutoTokenizer.from_pretrained(args.base_model_path)
 
 # ============= Load dataset =============
 test_ds = pd.read_json(args.test_set_path, lines=True)
+test_ds = test_ds[:args.data_sample]
+
+print(f'> ============ Test set has size {test_ds.shape[0]} ============')
+
 tqdm.pandas()
 test_ds = test_ds.progress_apply(partial(build_generation_prompt,
                                          template_spec=args.template,
@@ -83,7 +76,7 @@ test_ds = test_ds.progress_apply(partial(build_generation_prompt,
 args.output_dir = os.path.join(args.output_dir, 'evals')
 print(f">> Outputs are saving to {args.output_dir}")
 os.makedirs(args.output_dir, exist_ok=True)
-dump_args(args, args.output_dir)
+dump_args(args, args.output_dir, "prediction_args.json")
 
 # ============= Generate answers =============
 output_file_path = os.path.join(args.output_dir, "predictions.jsonl")

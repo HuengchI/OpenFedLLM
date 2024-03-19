@@ -9,20 +9,6 @@ import torch
 from datetime import datetime, timedelta
 
 
-# Define and parse arguments.
-@dataclass
-class FedArguments:
-    fed_alg: Optional[str] = field(default="fedavg", metadata={"help": "the algorithm to use"})
-    num_rounds: Optional[int] = field(default=500, metadata={"help": "the number of rounds"})
-    num_clients: Optional[int] = field(default=2, metadata={"help": "the number of clients"})
-    sample_clients: Optional[int] = field(default=2, metadata={"help": "the number of clients to sample"})
-    split_strategy: Optional[str] = field(default="iid", metadata={"help": "the split strategy"})
-    prox_mu: Optional[float] = field(default=0.01, metadata={"help": "the mu parameter of FedProx"})
-    fedopt_tau: Optional[float] = field(default=1e-3, metadata={"help": "the tau parameter of FedAdagrad, FedYogi and FedAdam"})
-    fedopt_eta: Optional[float] = field(default=1e-3, metadata={"help": "the global learning rate parameter of FedAdagrad, FedYogi and FedAdam"})
-    fedopt_beta1: Optional[float] = field(default=0.9, metadata={"help": "the beta1 parameter of FedYogi and FedAdam"})
-    fedopt_beta2: Optional[float] = field(default=0.99, metadata={"help": "the beta2 parameter of FedYogi and FedAdam"})
-
 @dataclass
 class ScriptArguments:
 
@@ -57,7 +43,7 @@ class ScriptArguments:
     gradient_checkpointing: Optional[bool] = field(default=False, metadata={"help": "Enable gradient checkpointing"})
     seed: Optional[int] = field(default=2023, metadata={"help": "the seed to use"})
     dpo_beta: Optional[float] = field(default=0.1, metadata={"help": "the beta parameter of DPO"})
-    dataset_sample: Optional[int] = field(default=20000, metadata={"help": "the number of samples to use from the dataset"})
+    dataset_sample: Optional[int] = field(default=200000, metadata={"help": "the number of samples to use from the dataset"})
     local_data_dir: Optional[str] = field(default=None, metadata={"help": "the local data directory if you want to use downloaded data"})
 
     template: Optional[str] = field(default="alpaca", metadata={"help": "the template to use"})
@@ -69,10 +55,10 @@ class ScriptArguments:
     optim: Optional[str] = field(default="adamw_torch")
     lr_scheduler_type: Optional[str] = field(default="linear")
     flash_attention: Optional[bool] = field(default=False, metadata={"help": "Enable FlashAttention-2"})
+    warmup_ratio: Optional[float] = field(default=0.0)
 
-
-parser = HfArgumentParser((ScriptArguments, FedArguments))
-script_args, fed_args = parser.parse_args_into_dataclasses()
+parser = HfArgumentParser((ScriptArguments))
+script_args, = parser.parse_args_into_dataclasses()
 
 # ===== Define the LoraConfig =====
 if script_args.use_peft:
@@ -88,7 +74,7 @@ else:
     peft_config = None
 
 def get_config():
-    return script_args, fed_args, peft_config
+    return script_args
 
 # ===== Define the training arguments =====
 def get_training_args(script_args, new_lr):
@@ -110,6 +96,7 @@ def get_training_args(script_args, new_lr):
         local_rank=script_args.local_rank,
         optim=script_args.optim,
         lr_scheduler_type=script_args.lr_scheduler_type,
+        warmup_ratio=script_args.warmup_ratio,
     )
     return training_args
 

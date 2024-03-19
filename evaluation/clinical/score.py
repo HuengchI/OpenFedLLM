@@ -1,10 +1,3 @@
-"""
-e.g.
-python score.py --prediction_set_path 'prediction_output/20240315170124.jsonl' \
---test_set_path '../../datasets/DISC-Law-SFT/jud_doc_sum/jud_doc_sum_test_split.jsonl'
-"""
-
-import argparse
 import os
 from typing import Optional
 from tqdm import tqdm
@@ -14,8 +7,8 @@ from transformers import HfArgumentParser
 
 import sys
 THRID_PARTY_LIB_PATH = (
-    "../../",
-    "../../../SPEER/",
+    ".",
+    "../../SPEER/", # esg_tools
 )
 for path in THRID_PARTY_LIB_PATH:
     path = os.path.abspath(path)
@@ -23,6 +16,7 @@ for path in THRID_PARTY_LIB_PATH:
         sys.path.append(path)
 
 from utils.metrics_predefined import RougeMetric, BleuMetric, ZHBertScoreMetric
+from utils import dump_args
 from esg_tools import metric_compute_HR, metric_compute_SGR
 
 
@@ -30,8 +24,8 @@ from esg_tools import metric_compute_HR, metric_compute_SGR
 class ScriptArguments:
     prediction_set_path: Optional[str] = field()
     test_set_path: Optional[str] = field()
+    local_rank: Optional[int] = field(default=-1)
 
-parser = argparse.ArgumentParser()
 parser = HfArgumentParser(ScriptArguments)
 args = parser.parse_args_into_dataclasses()[0]
 
@@ -56,16 +50,16 @@ def compute_summary_metric(row):
     gen_txts = [row['metric_gen']]
 
     # Entity-based Scores: SGR & HR
-    SGRs = []
-    HRs = []
-    for src_txt, gen_txt, tgt_txt in zip(src_txts, gen_txts, tgt_txts):
-        sgr = metric_compute_SGR(src_txt, tgt_txt, gen_txt)
-        hr = metric_compute_HR(src_txt, gen_txt)
-        SGRs.append(sgr)
-        HRs.append(hr)
+    # SGRs = []
+    # HRs = []
+    # for src_txt, gen_txt, tgt_txt in zip(src_txts, gen_txts, tgt_txts):
+    #     sgr = metric_compute_SGR(src_txt, tgt_txt, gen_txt)
+    #     hr = metric_compute_HR(src_txt, gen_txt)
+    #     SGRs.append(sgr)
+    #     HRs.append(hr)
 
-    row['SGR'] = SGRs[0]
-    row['HR'] = HRs[0]
+    # row['SGR'] = SGRs[0]
+    # row['HR'] = HRs[0]
 
     # rouge
     rouge_scorer = RougeMetric()
@@ -87,7 +81,7 @@ def compute_summary_metric(row):
 
     row['bs_f1'] = bs_dict['score_details_per_sample']['F1'][0]
     row['bs_p'] = bs_dict['score_details_per_sample']['P'][0]
-    
+
     return row
 
 tqdm.pandas()
@@ -95,6 +89,7 @@ result_df = result_df.progress_apply(compute_summary_metric, axis=1)
 
 # ============= Save Results =============
 output_dir = os.path.dirname(args.prediction_set_path)
+dump_args(args, output_dir, "score_args.json")
 output_file_path = os.path.join(output_dir, "metric_scores.jsonl")
 
 metric_only_result_df = result_df.drop(columns=['metric_src', 'metric_ref', 'metric_gen'])
