@@ -11,8 +11,6 @@ def get_custom_local_dataset(custom_local_dataset:str, dataset_sample, post_df_l
         dataset = post_df_loading_process_fn(dataset)
 
     dataset = Dataset.from_pandas(dataset)
-    dataset = dataset.rename_column("source", "instruction")
-    dataset = dataset.rename_column("target", "response")
 
     dataset = dataset.shuffle(seed=2023)
 

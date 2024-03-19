@@ -1,29 +1,43 @@
-"""
-To support TRL supervised fine-tuning. Right now, we need to manually set the template here.
-"""
-
-alpaca_template = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
-### Instruction:
-{} 
-
-### Response: {}{}"""
-
-vicuna_template = """A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. USER: {} ASSISTANT: {}{}"""
-
-TEMPLATE_DICT = {
-    'alpaca': (alpaca_template, '\n### Response:'),
-    'vicuna': (vicuna_template, ' ASSISTANT:'),
-}
+class SPEER:
+    SPEER={
+        "template": """Retrieve a subset of the medical entities in double brackets {{{{}}}} and use them to generate the BRIEF HOSPITAL COURSE summary.
+{source}
+### BRIEF HOSPITAL COURSE: {target}""",
+        "fields": ("source", "target"),
+        "response_context":"""### BRIEF HOSPITAL COURSE:""",
+    }
 
 
-def get_formatting_prompts_func(template_name, eos_token):
-    overall_temp, response_temp = TEMPLATE_DICT[template_name]
-    def formatting_prompts_func(example):    
-        output_texts = []    
-        for i in range(len(example['instruction'])):    
-            text = overall_temp.format(example['instruction'][i], example['response'][i], eos_token)    
+def get_formatting_prompts_func(template_spec: str, eos_token):
+    class_name, template_name = template_spec.split('.')
+    template = getattr(globals()[class_name], template_name)
+
+    
+    def formatting_prompts_func(example):
+        output_texts = []
+        for i in range(len(example[template['fields'][0]])):
+            format_mapping = {}
+            for k in template['fields']:
+                format_mapping[k] = example[k][i]
+
+            text = template['template'].format_map(format_mapping) + eos_token
             output_texts.append(text)    
         return output_texts    
+
+    return formatting_prompts_func, template['response_context']
+
+def build_generation_prompt(example, template_spec: str, **kwargs):
+    class_name, template_name = template_spec.split('.')
+    template = getattr(globals()[class_name], template_name)
+    format_mapping = {}
+    for k in template['fields']:
+        if k in kwargs:
+            format_mapping[k] = example[kwargs[k]]
+        else:
+            format_mapping[k] = ''
     
-    return formatting_prompts_func, response_temp
+    prompt = template['template'].format_map(format_mapping)
+
+    example['prompt'] = prompt
+
+    return example

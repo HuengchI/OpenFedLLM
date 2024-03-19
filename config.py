@@ -55,12 +55,12 @@ class ScriptArguments:
     push_to_hub: Optional[bool] = field(default=False, metadata={"help": "Push the model to HF Hub"})
     hub_model_id: Optional[str] = field(default=None, metadata={"help": "The name of the model on HF Hub"})
     gradient_checkpointing: Optional[bool] = field(default=False, metadata={"help": "Enable gradient checkpointing"})
-    template: Optional[str] = field(default="alpaca", metadata={"help": "the template to use"})
     seed: Optional[int] = field(default=2023, metadata={"help": "the seed to use"})
     dpo_beta: Optional[float] = field(default=0.1, metadata={"help": "the beta parameter of DPO"})
     dataset_sample: Optional[int] = field(default=20000, metadata={"help": "the number of samples to use from the dataset"})
     local_data_dir: Optional[str] = field(default=None, metadata={"help": "the local data directory if you want to use downloaded data"})
-    
+
+    template: Optional[str] = field(default="alpaca", metadata={"help": "the template to use"})
     custom_local_dataset: Optional[str] = field(default=None, metadata={"help": "Custom dataset file you want to use."})
     instruction_name: Optional[str] = field(default=None, metadata={"help": "Paired with custom dataset, the instruction you need with your task"})
     deepspeed: Optional[str] = field(default=None)
@@ -138,26 +138,7 @@ def get_model_config(script_args):
 
     return device_map, quantization_config, torch_dtype, other_kwargs
 
-def save_config(script_args, fed_args):
-    now_time = (datetime.now()).strftime("%Y%m%d%H%M%S")
-    if script_args.custom_local_dataset:
-        dataset_name_split = os.path.basename(script_args.custom_local_dataset)
-        dataset_name_split = dataset_name_split[:dataset_name_split.rfind('.')]
-    else:
-        dataset_name_split = os.path.basename(script_args.dataset_name)
-    output_dir = f"{script_args.output_dir}/{dataset_name_split}_{now_time}_{script_args.dataset_sample}_{fed_args.fed_alg}_c{fed_args.num_clients}s{fed_args.sample_clients}_i{script_args.max_steps}_b{script_args.batch_size}a{script_args.gradient_accumulation_steps}_l{script_args.seq_length}_r{script_args.peft_lora_r}a{script_args.peft_lora_alpha}"
-    while True:
-        if not os.path.exists(output_dir):
-            os.mkdir(output_dir)
-            break
-        else:
-            now_time = (datetime.now() + timedelta(seconds=1)).strftime("%Y%m%d%H%M%S")
-            output_dir = f"{script_args.output_dir}/{dataset_name_split}_{fed_args.fed_alg}_c{fed_args.num_clients}s{fed_args.sample_clients}_i{script_args.max_steps}_b{script_args.batch_size}a{script_args.gradient_accumulation_steps}_l{script_args.seq_length}_{now_time}"
-
-    script_args.output_dir = output_dir
+def save_config(script_args):
+    os.makedirs(script_args.output_dir, exist_ok=True)
     with open(os.path.join(script_args.output_dir, "args.json"), "w") as f:
-        combined_dict = {
-            "script_args": asdict(script_args),
-            "fed_args": asdict(fed_args),
-        }
-        json.dump(combined_dict, f, indent=4)
+        json.dump(asdict(script_args), f, indent=4)
