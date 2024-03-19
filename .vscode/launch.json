@@ -13,13 +13,13 @@
             "justMyCode": false,
             "args": [
                 "--master_port", "31433",
-                "--include=localhost:1",
+                "--include=localhost:3",
                 "main_sft.py",
                 "--learning_rate", "5e-6",
                 // "--model_name_or_path", "/home/models/Llama-2-7b-hf",
                 "--model_name_or_path", "/home/models/Mistral-7B-v0.1/",
                 "--custom_local_dataset", "datasets/mimic-iii-notes/NOTES_len6K_src5900_cov0.5_w_ESGs_train_split.jsonl",
-                "--instruction_name", "SPEER",
+                "--instruction_name", "Non_Guided",
                 "--dataset_sample", "1000",
                 "--fed_alg", "fedavg",
                 "--num_clients", "1",
@@ -56,7 +56,7 @@
             "args": [
                 "--base_model_path", "/home/models/Mistral-7B-v0.1/",
                 "--template", "alpaca",
-                "--lora_path", "../../output/CodeAlpaca-20k_1000_fedavg_c1s1_i1000_b1a16_l8192_r32a64_20240316201739/checkpoint-1",
+                "--lora_path", "../../saved_output/clinical_NOTES_SPEER_len6K_src5900_cov0.5_w_ESGs_train_split_20240317205745_1000_fedavg_c1s1_i1000_b1a16_l8192_r32a64/checkpoint-1",
                 "--test_set_path", "../../datasets/mimic-iii-notes/NOTES_len6K_src5900_cov0.5_w_ESGs_test_split.jsonl",
                 "--output_dir", "./prediction_output",
                 "--max_new_token", "1800",
@@ -76,7 +76,7 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
-                "--prediction_set_path", "prediction_output/20240317115909/predictions.jsonl",
+                "--prediction_set_path", "../../evaluation/clinical/prediction_output/20240318110341/predictions.jsonl",
                 "--test_set_path", "../../datasets/mimic-iii-notes/NOTES_len6K_src5900_cov0.5_w_ESGs_test_split.jsonl",
             ],
             "env": {
