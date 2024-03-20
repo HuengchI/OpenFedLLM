@@ -30,6 +30,7 @@ training_args = TrainingArguments(
         local_rank=script_args.local_rank,
         optim=script_args.optim,
         lr_scheduler_type=script_args.lr_scheduler_type,
+        warmup_ratio=script_args.warmup_ratio,
     )
 peft_config = LoraConfig(
     r=script_args.peft_lora_r,
@@ -79,9 +80,9 @@ if tokenizer.pad_token is None:
 
 # ===== Define the formatting function (cater to TRL SFTTrainer)=====
 formatting_prompts_func, response_template = get_formatting_prompts_func(script_args.template, tokenizer.eos_token)
-response_template_ids = tokenizer.encode(response_template, add_special_tokens=False)[2:-2]   # OLMO tokenizer 在不同的context下首尾都不同
-# data_collator = DataCollatorForCompletionOnlyLM(response_template_ids, tokenizer=tokenizer)
-data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+response_template_ids = tokenizer.encode(response_template, add_special_tokens=False)[2:]
+data_collator = DataCollatorForCompletionOnlyLM(response_template_ids, tokenizer=tokenizer)
+# data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 
 # ===== Start training =====
 

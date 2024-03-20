@@ -2,9 +2,10 @@ class SPEER:
     SPEER={
         "template": """Retrieve a subset of the medical entities in double brackets {{{{}}}} and use them to generate the BRIEF HOSPITAL COURSE summary.
 {source}
-### BRIEF HOSPITAL COURSE: {target}""",
+### BRIEF HOSPITAL COURSE:
+{target}""",
         "fields": ("source", "target"),
-        "response_context":"""### BRIEF HOSPITAL COURSE:""",
+        "response_context":"""### BRIEF HOSPITAL COURSE:\n""",
     }
 
 
