@@ -46,7 +46,6 @@ class ScriptArguments:
     dataset_sample: Optional[int] = field(default=200000, metadata={"help": "the number of samples to use from the dataset"})
     local_data_dir: Optional[str] = field(default=None, metadata={"help": "the local data directory if you want to use downloaded data"})
 
-    template: Optional[str] = field(default="alpaca", metadata={"help": "the template to use"})
     custom_local_dataset: Optional[str] = field(default=None, metadata={"help": "Custom dataset file you want to use."})
     instruction_name: Optional[str] = field(default=None, metadata={"help": "Paired with custom dataset, the instruction you need with your task"})
     deepspeed: Optional[str] = field(default=None)
@@ -57,19 +56,18 @@ class ScriptArguments:
     flash_attention: Optional[bool] = field(default=False, metadata={"help": "Enable FlashAttention-2"})
     warmup_ratio: Optional[float] = field(default=0.0)
 
+    template: Optional[str] = field(default="undefined")
+    train_set_source_column: Optional[str] = field(default="unknown")
+    train_set_target_column: Optional[str] = field(default="unknown")
+
+    run_name: Optional[str] = field(default=None) # wandb run_name
+
 parser = HfArgumentParser((ScriptArguments))
 script_args, = parser.parse_args_into_dataclasses()
 
 # ===== Define the LoraConfig =====
 if script_args.use_peft:
-    peft_config = LoraConfig(
-        r=script_args.peft_lora_r,
-        lora_alpha=script_args.peft_lora_alpha,
-        lora_dropout=0.05,
-        bias="none",
-        task_type="CAUSAL_LM",
-        target_modules=["att_proj"]
-    )
+    peft_config = None
 else:
     peft_config = None
 

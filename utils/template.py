@@ -1,11 +1,19 @@
 class SPEER:
     SPEER={
         "template": """Retrieve a subset of the medical entities in double brackets {{{{}}}} and use them to generate the BRIEF HOSPITAL COURSE summary.
-{source}
+{template_source}
 ### BRIEF HOSPITAL COURSE:
-{target}""",
-        "fields": ("source", "target"),
+{template_target}""",
+        "fields": ("template_source", "template_target"),
         "response_context":"""### BRIEF HOSPITAL COURSE:\n""",
+    }
+    NonGuided={
+        "template": """Generate the BRIEF HOSPITAL COURSE summary.
+{template_source}
+### BRIEF HOSPITAL COURSE:
+{template_target}""",
+        "fields": ("template_source", "template_target"),
+        "response_context":"""### BRIEF HOSPITAL COURSE:\n""", 
     }
 
 
@@ -13,7 +21,7 @@ def get_formatting_prompts_func(template_spec: str, eos_token):
     class_name, template_name = template_spec.split('.')
     template = getattr(globals()[class_name], template_name)
 
-    
+
     def formatting_prompts_func(example):
         output_texts = []
         for i in range(len(example[template['fields'][0]])):

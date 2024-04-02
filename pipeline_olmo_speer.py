@@ -1,22 +1,29 @@
-import os
-import subprocess
-from datetime import datetime
-
 do_score = True
 cuda_devices: str = "2"
+template_spec = "SPEER.SPEER"
+train_set_source_column = "source"
+train_set_target_column = "target"
+
+#######################################################################
+
+import os
+import subprocess
+import random
+from datetime import datetime
+from utils.random_run_name import generate_run_name
 
 # ====================== Starting Args Definition ======================
 
 model_name_or_path = os.path.abspath("/home/models/OLMo-1B/")
-train_set = os.path.abspath("datasets/mimic-iii-notes/NOTES_len6K_src5900_cov0.5_w_ESGs_train_split.jsonl")
+# train_set = os.path.abspath("datasets/mimic-iii-notes/NOTES_len6K_src5900_cov0.5_w_ESGs_train_split.jsonl")
+train_set = os.path.abspath("/data/huengchi/Research/SPEER/Datasets_Processed/LLM_FT_Dataset_len8K_cov0.5_w_ESGs.jsonl")
 test_set = os.path.abspath("datasets/mimic-iii-notes/NOTES_len6K_src5900_cov0.5_w_ESGs_test_split.jsonl")
-template_spec = "SPEER.SPEER"
 
-max_train_steps = str(2000)
+max_train_steps = str(1000)
 test_set_sample = str(200000)
 
 output_dir_base = os.path.abspath("./outputs")
-run_name = "OLMO-1B-Notes"
+exp_name = "MedSum"
 
 sft_learning_rate = str(5e-4)
 
@@ -24,32 +31,38 @@ prediction_max_new_tokens = str(1800)
 
 # ====================== Finished Args Definition ======================
 
-output_dir_name = f"""{run_name}_{(datetime.now()).strftime('%Y%m%d%H%M%S')}"""
+run_name = generate_run_name()
+
+output_dir_name = f"""{exp_name}_{(datetime.now()).strftime('%Y%m%d%H%M%S')}_{run_name}"""
 output_dir = os.path.join(output_dir_base, output_dir_name)
 output_dir = os.path.abspath(output_dir)
 
+
 sft_cmd = [
     "//data/huengchi/.bin/anaconda3/envs/torch-2.1-py-3.10/bin/deepspeed",
-     "--master_port", "53825",
+     "--master_port", str(random.randint(10000, 65535)),
     f"--include=localhost:{cuda_devices}",
     "olmo_sft.py",
     "--learning_rate", sft_learning_rate,
     "--model_name_or_path", model_name_or_path,
     "--custom_local_dataset", os.path.abspath(train_set),
     "--template", template_spec,
+    "--train_set_source_column", train_set_source_column,
+    "--train_set_target_column", train_set_target_column,
     "--max_steps", max_train_steps,
     "--batch_size", "1",
     "--gradient_accumulation_steps", "16",
-    "--warmup_ratio", "0.03sc",
+    "--warmup_ratio", "0.03",
     "--seq_length", "8192",
     "--peft_lora_r", "32",
-    "--peft_lora_alpha", "64",
+    "--peft_lora_alpha", "32",
     "--use_peft",
     "--output_dir", output_dir,
     "--deepspeed", "ds_zero_stage0.json",
     "--bf16", "true",
     "--log_with", "wandb",
     "--logging_steps", "1",
+    "--run_name", run_name,
 ]
 
 lora_path = os.path.join(output_dir, 'checkpoint-final')

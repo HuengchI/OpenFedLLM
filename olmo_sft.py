@@ -1,4 +1,3 @@
-import copy
 import os
 import numpy as np
 
@@ -31,6 +30,7 @@ training_args = TrainingArguments(
         optim=script_args.optim,
         lr_scheduler_type=script_args.lr_scheduler_type,
         warmup_ratio=script_args.warmup_ratio,
+        run_name=script_args.run_name,
     )
 peft_config = LoraConfig(
     r=script_args.peft_lora_r,
@@ -46,9 +46,11 @@ if is_main_process(script_args):
 print(script_args)
 
 # ===== Load the dataset =====
+
 dataset = get_custom_local_dataset(script_args.custom_local_dataset,
                                        script_args.dataset_sample,
-                                       post_df_loading_process_fn=None)
+                                       post_df_loading_process_fn=lambda df: df.rename(columns={script_args.train_set_source_column: "template_source",
+                                                                                                script_args.train_set_target_column: "template_target"}))
 
 # ===== Get model config =====
 device_map, quantization_config, torch_dtype, other_kwargs = get_model_config(script_args)
