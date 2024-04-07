@@ -1,8 +1,8 @@
 do_score = True
-cuda_devices: str = "2"
-template_spec = "SPEER.SPEER"
-train_set_source_column = "source"
-train_set_target_column = "target"
+cuda_devices: str = "0"
+template_spec = "SumPubMed.Common"
+train_set_source_column = "text"
+train_set_target_column = "abstract"
 
 #######################################################################
 
@@ -15,15 +15,16 @@ from utils.random_run_name import generate_run_name
 # ====================== Starting Args Definition ======================
 
 model_name_or_path = os.path.abspath("/home/models/OLMo-1B/")
-# train_set = os.path.abspath("datasets/mimic-iii-notes/NOTES_len6K_src5900_cov0.5_w_ESGs_train_split.jsonl")
-train_set = os.path.abspath("/data/huengchi/Research/SPEER/Datasets_Processed/LLM_FT_Dataset_len8K_cov0.5_w_ESGs.jsonl")
-test_set = os.path.abspath("datasets/mimic-iii-notes/NOTES_len6K_src5900_cov0.5_w_ESGs_test_split.jsonl")
+
+train_set = "Blaise-g/SumPubmed:hf"
+test_set = "Blaise-g/SumPubmed:hf"
 
 max_train_steps = str(1000)
+train_set_sample = str(5000)
 test_set_sample = str(200000)
 
 output_dir_base = os.path.abspath("./outputs")
-exp_name = "MedSum"
+exp_name = "SumPubMed"
 
 sft_learning_rate = str(5e-4)
 
@@ -45,10 +46,11 @@ sft_cmd = [
     "olmo_sft.py",
     "--learning_rate", sft_learning_rate,
     "--model_name_or_path", model_name_or_path,
-    "--custom_local_dataset", os.path.abspath(train_set),
+    "--custom_local_dataset", train_set,
     "--template", template_spec,
     "--train_set_source_column", train_set_source_column,
     "--train_set_target_column", train_set_target_column,
+    "--dataset_sample", train_set_sample,
     "--max_steps", max_train_steps,
     "--batch_size", "1",
     "--gradient_accumulation_steps", "16",
@@ -74,7 +76,7 @@ pred_cmd = [
     "--base_model_path", model_name_or_path,
     "--template", template_spec,
     "--lora_path", lora_path,
-    "--test_set_path", os.path.abspath(test_set),
+    "--test_set_path", test_set,
     "--data_sample", test_set_sample,
     "--output_dir", output_dir,
     "--max_new_token", prediction_max_new_tokens,
@@ -87,8 +89,8 @@ score_cmd = [
     "//data/huengchi/.bin/anaconda3/envs/torch-2.1-py-3.10/bin/deepspeed",
     f"--include=localhost:{cuda_devices}",
     "evaluation/clinical/score.py",
-    "--prediction_set_path", os.path.abspath(pred_set),
-    "--test_set_path", os.path.abspath(test_set),
+    "--prediction_set_path", pred_set,
+    "--test_set_path", test_set,
 ]
 
 env = {
@@ -99,7 +101,7 @@ env = {
 def print_arg_list(arg_list):
     print('[')
     for arg in arg_list[1:]:
-        print(f'"{arg}",')
+        print(f'    "{arg}",')
     print('],')
 
 if __name__ == "__main__":

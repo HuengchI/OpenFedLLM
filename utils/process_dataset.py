@@ -5,18 +5,27 @@ from .conversation import get_conv_template
 from functools import partial
 
 def get_custom_local_dataset(custom_local_dataset:str, dataset_sample, post_df_loading_process_fn = None):
-    dataset = pd.read_json(custom_local_dataset, lines=True)
+    custom_local_dataset, scheme = custom_local_dataset.rsplit(":", maxsplit=1)
 
-    if post_df_loading_process_fn is not None:
-        dataset = post_df_loading_process_fn(dataset)
+    if scheme=="file":
+        dataset = pd.read_json(custom_local_dataset, lines=True,  dtype=False)
 
-    dataset = Dataset.from_pandas(dataset)
+        if post_df_loading_process_fn is not None:
+            dataset = post_df_loading_process_fn(dataset)
+
+        dataset = Dataset.from_pandas(dataset)
+    elif scheme=="hf":
+        # hf
+        dataset = load_dataset(custom_local_dataset, split="train")
+    else:
+        raise NotImplementedError
+
 
     dataset = dataset.shuffle(seed=2023)
 
-    if dataset_sample:
-        num_sample = min(len(dataset), dataset_sample)
-        dataset = dataset.select(range(num_sample))
+    # dataset_sample:
+    num_sample = min(len(dataset), dataset_sample)
+    dataset = dataset.select(range(num_sample))
     print(f">> ===== After sampling, Dataset {custom_local_dataset} has {len(dataset)} examples. =====")
     return dataset
 

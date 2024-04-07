@@ -25,18 +25,20 @@ class ScriptArguments:
     prediction_set_path: Optional[str] = field()
     test_set_path: Optional[str] = field()
     local_rank: Optional[int] = field(default=-1)
+    metric_src_field: Optional[str] = field(default='source')
+    metric_tgt_field: Optional[str] = field(default='target')
 
 parser = HfArgumentParser(ScriptArguments)
 args = parser.parse_args_into_dataclasses()[0]
 
 
 # ============= Load Datasets =============
-prediction_df = pd.read_json(args.prediction_set_path, lines=True)
+prediction_df = pd.read_json(args.prediction_set_path, lines=True, dtype=False)
 prediction_df = prediction_df.rename(columns={'output': 'metric_gen'})
 
-test_df = pd.read_json(args.test_set_path, lines=True)
-test_df = test_df.rename(columns={'source_orig': 'metric_src'}) # for metric calculation
-test_df = test_df.rename(columns={'target': 'metric_ref'})
+test_df = pd.read_json(args.test_set_path, lines=True, dtype=False)
+test_df = test_df.rename(columns={args.metric_src_field: 'metric_src'}) # for metric calculation
+test_df = test_df.rename(columns={args.metric_tgt_field: 'metric_ref'})
 test_df = test_df.rename(columns={'example_id': 'id'})
 test_df = test_df[['metric_src', 'metric_ref', 'id']]
 

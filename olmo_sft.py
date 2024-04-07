@@ -48,9 +48,7 @@ print(script_args)
 # ===== Load the dataset =====
 
 dataset = get_custom_local_dataset(script_args.custom_local_dataset,
-                                       script_args.dataset_sample,
-                                       post_df_loading_process_fn=lambda df: df.rename(columns={script_args.train_set_source_column: "template_source",
-                                                                                                script_args.train_set_target_column: "template_target"}))
+                                       script_args.dataset_sample)
 
 # ===== Get model config =====
 device_map, quantization_config, torch_dtype, other_kwargs = get_model_config(script_args)
@@ -81,7 +79,9 @@ if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.unk_token   # following vicuna
 
 # ===== Define the formatting function (cater to TRL SFTTrainer)=====
-formatting_prompts_func, response_template = get_formatting_prompts_func(script_args.template, tokenizer.eos_token)
+formatting_prompts_func, response_template = get_formatting_prompts_func(script_args.template, tokenizer.eos_token,
+                                                                         template_source=script_args.train_set_source_column,
+                                                                         template_target=script_args.train_set_target_column)
 response_template_ids = tokenizer.encode(response_template, add_special_tokens=False)[2:]
 data_collator = DataCollatorForCompletionOnlyLM(response_template_ids, tokenizer=tokenizer)
 # data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)

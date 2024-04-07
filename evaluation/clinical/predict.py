@@ -61,7 +61,7 @@ if args.lora_path:
 tokenizer = AutoTokenizer.from_pretrained(args.base_model_path)
 
 # ============= Load dataset =============
-test_ds = pd.read_json(args.test_set_path, lines=True)
+test_ds = pd.read_json(args.test_set_path, lines=True, dtype=False)
 test_ds = test_ds[:args.data_sample]
 
 print(f'> ============ Test set has size {test_ds.shape[0]} ============')
@@ -69,7 +69,7 @@ print(f'> ============ Test set has size {test_ds.shape[0]} ============')
 tqdm.pandas()
 test_ds = test_ds.progress_apply(partial(build_generation_prompt,
                                          template_spec=args.template,
-                                         source='source'),
+                                         template_source='source'),
                                  axis=1)
 
 # ============= Dump args =============
