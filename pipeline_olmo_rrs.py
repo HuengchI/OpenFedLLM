@@ -1,8 +1,9 @@
 do_score = True
-cuda_devices: str = "0"
-template_spec = "SumPubMed.Common"
-train_set_source_column = "text"
-train_set_target_column = "abstract"
+cuda_devices: str = "1"
+template_spec = "RRS.Trivial"
+train_set_source_column = "findings, background"
+train_set_target_column = "impression"
+dataset_id_column_specs = "study_id, subject_id"
 
 #######################################################################
 
@@ -16,21 +17,27 @@ from utils.random_run_name import generate_run_name
 
 model_name_or_path = os.path.abspath("/home/models/OLMo-1B/")
 
-train_set = "Blaise-g/SumPubmed:hf"
-test_set = "Blaise-g/SumPubmed:hf"
+train_set = "//data/huengchi/Datasets/MEDIQA2021/Task3/train.json"
+test_set = "//data/huengchi/Datasets/MEDIQA2021/Task3/dev.json"
 
-max_train_steps = str(1000)
+max_train_steps = str(5000)
 train_set_sample = str(5000)
 test_set_sample = str(200000)
 
+training_batch_size = 16
+training_batch_size_per_GPU = 16
+pred_batch_size = 16
+
 output_dir_base = os.path.abspath("./outputs")
-exp_name = "SumPubMed"
+exp_name = "RRS"
 
 sft_learning_rate = str(5e-4)
 
-prediction_max_new_tokens = str(1800)
+prediction_max_new_tokens = str(500)
 
 # ====================== Finished Args Definition ======================
+assert training_batch_size%training_batch_size_per_GPU==0
+training__gradient_accu_steps = training_batch_size//training_batch_size_per_GPU
 
 run_name = generate_run_name()
 
@@ -52,8 +59,8 @@ sft_cmd = [
     "--train_set_target_column", train_set_target_column,
     "--dataset_sample", train_set_sample,
     "--max_steps", max_train_steps,
-    "--batch_size", "1",
-    "--gradient_accumulation_steps", "16",
+    "--batch_size", str(training_batch_size_per_GPU),
+    "--gradient_accumulation_steps", str(training__gradient_accu_steps),
     "--warmup_ratio", "0.03",
     "--seq_length", "8192",
     "--peft_lora_r", "32",
@@ -77,9 +84,11 @@ pred_cmd = [
     "--template", template_spec,
     "--lora_path", lora_path,
     "--test_set_path", test_set,
+    "--dataset_id_column_specs", dataset_id_column_specs,
     "--data_sample", test_set_sample,
     "--output_dir", output_dir,
     "--max_new_token", prediction_max_new_tokens,
+    "--pred_batch_size", str(pred_batch_size),
 ]
 
 pred_set = os.path.join(output_dir, 'evals', 'predictions.jsonl')
@@ -108,18 +117,18 @@ if __name__ == "__main__":
 
     process = subprocess.Popen(sft_cmd, env=env)
     process.wait()
-    assert process.returncode == 0, process.returncode
+    assert process.returncode == 0, f"sft process.returncode={process.returncode}"
     print('> ============= sft Finished =============')
 
     process = subprocess.Popen(pred_cmd, env=env)
     process.wait()
-    assert process.returncode == 0, process.returncode
+    assert process.returncode == 0, f"prediction process.returncode={process.returncode}"
     print('> ============= prediction Finished =============')
 
     if do_score:
         process = subprocess.Popen(score_cmd, env=env)
         process.wait()
-        assert process.returncode == 0, process.returncode
+        assert process.returncode == 0, f"score process.returncode={process.returncode}"
         print('> ============= score Finished =============')
 
-    print('All Done!')
+    print('> ============= All Done! =============')

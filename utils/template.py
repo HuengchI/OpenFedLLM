@@ -33,6 +33,20 @@ class SumPubMed:
         "response_context":"""### ABSTRACT:\n""", 
     }
 
+class RRS:
+    Trivial={
+        "template": """Please write IMPRESSION section of a patient's radiology report, given the corresponding FINDINGS and BACKGROUND sections.
+
+### FINDINGS:
+{template_findings}
+### BACKGROUND:
+{template_background}
+### IMPRESSION:
+{template_impression}""",
+        "fields": ("template_findings", "template_background", "template_impression"),
+        "response_context":"""### IMPRESSION:\n""", 
+    }
+
 
 def get_formatting_prompts_func(template_spec: str, eos_token, **kwargs):
     class_name, template_name = template_spec.split('.')

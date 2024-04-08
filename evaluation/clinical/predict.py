@@ -18,16 +18,19 @@ UTILS_LIB_PATH = "."
 sys.path.append(os.path.abspath(UTILS_LIB_PATH))
 from utils.template import build_generation_prompt
 from utils import dump_args
+from utils.utils import make_id
 
 
 @dataclass
 class ScriptArguments:
     max_new_token: Optional[int] = field()
+    pred_batch_size: Optional[int] = field()
     data_sample: Optional[int] = field(default=200000)
     base_model_path: Optional[str] = field(default=None)
     lora_path: Optional[str] = field(default=None)
     template: Optional[str] = field(default=None)
     test_set_path: Optional[str] = field(default=None)
+    dataset_id_column_specs: Optional[str] = field(default='(unset)')
     output_dir: Optional[str] = field(default=None)
     local_rank: Optional[int] = field(default=-1)
 
@@ -58,10 +61,10 @@ model = AutoModelForCausalLM.from_pretrained(args.base_model_path,
                                              torch_dtype=torch.float16).to('cuda')    # float16 to run inference of 7B model on 3090 GPU
 if args.lora_path:
     model = PeftModel.from_pretrained(model, args.lora_path, torch_dtype=torch.float16)
-tokenizer = AutoTokenizer.from_pretrained(args.base_model_path)
+tokenizer = AutoTokenizer.from_pretrained(args.base_model_path, padding_side = 'left')
 
 # ============= Load dataset =============
-test_ds = pd.read_json(args.test_set_path, lines=True, dtype=False)
+test_ds = pd.read_json(args.test_set_path, dtype=False)
 test_ds = test_ds[:args.data_sample]
 
 print(f'> ============ Test set has size {test_ds.shape[0]} ============')
@@ -69,7 +72,8 @@ print(f'> ============ Test set has size {test_ds.shape[0]} ============')
 tqdm.pandas()
 test_ds = test_ds.progress_apply(partial(build_generation_prompt,
                                          template_spec=args.template,
-                                         template_source='source'),
+                                         template_findings='findings',
+                                         template_background='background'),
                                  axis=1)
 
 # ============= Dump args =============
@@ -83,46 +87,48 @@ output_file_path = os.path.join(args.output_dir, "predictions.jsonl")
 print(f">> The template is:\n{args.template}")
 
 pbar = tqdm(total=len(test_ds))
-for _, row in tqdm(test_ds.iterrows()):
-    prompt = row['prompt']
-    encodes = tokenizer([prompt])
-    input_ids = encodes.input_ids
-    attention_mask = encodes.attention_mask
+
+for i in range(0, len(test_ds), args.pred_batch_size):
+    batch = test_ds.iloc[i:i+args.pred_batch_size]
+
+    encodes = tokenizer(batch['prompt'].tolist(), padding='longest')
+    encodes.pop('token_type_ids')
 
     output_ids = model.generate(
-        input_ids=torch.as_tensor(input_ids).cuda(),
-        attention_mask = torch.as_tensor(attention_mask).cuda(),
+        **{k:torch.as_tensor(v).cuda() for k,v in encodes.items()},
         do_sample=False,
         max_new_tokens=args.max_new_token,
     )
-    if model.config.is_encoder_decoder:
-        output_ids = output_ids[0]
-    else:
-        output_ids = output_ids[0][len(input_ids[0]) :]
+    output_ids = output_ids.tolist()
+    for i in range(args.pred_batch_size):
+        output_ids[i] = output_ids[i][len(encodes['input_ids'][i]) :]
 
-    output = tokenizer.decode(
+    output = tokenizer.batch_decode(
         output_ids,
         spaces_between_special_tokens=False,
     )
 
-    for special_token in tokenizer.special_tokens_map.values():
-        if isinstance(special_token, list):
-            for special_tok in special_token:
-                output = output.replace(special_tok, "")
-        else:
-            output = output.replace(special_token, "")
-    output = output.strip()
+    for i in range(args.pred_batch_size):
+        for special_token in tokenizer.special_tokens_map.values():
+            if isinstance(special_token, list):
+                for special_tok in special_token:
+                    output[i] = output[i].replace(special_tok, "")
+            else:
+                output[i] = output[i].replace(special_token, "")
+        output[i] = output[i].strip()
 
     # Dump answers
     with open(output_file_path, "a") as fout:
-        ans_json = {
-            "id": row['example_id'],
-            "output": output,
-        }
-        fout.write(json.dumps(ans_json) + "\n")
+        for i in range(args.pred_batch_size):
+            row = batch.iloc[i]
+            ans_json = {
+                "id": make_id(args.dataset_id_column_specs ,row),
+                "output": output[i],
+            }
+            fout.write(json.dumps(ans_json) + "\n")
 
     # display output
-    print(output)
+    print(output[0])
 
-    pbar.update()
+    pbar.update(args.pred_batch_size)
 pbar.close()

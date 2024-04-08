@@ -1,5 +1,15 @@
 import math
 
+
+def make_id(id_spec:str, pd_row):
+    id_columnss = [s.strip() for s in id_spec.split(",")]
+    id_str = []
+    for id_col in id_columnss:
+        id_str.append(str(pd_row[id_col]))
+    id_str = '_'.join(id_str)
+    return id_str
+
+
 def cosine_learning_rate(current_round, total_rounds, initial_lr=0.001, min_lr=0):
     """
     Compute the learning rate based on a cosine schedule.

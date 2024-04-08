@@ -80,8 +80,9 @@ if tokenizer.pad_token is None:
 
 # ===== Define the formatting function (cater to TRL SFTTrainer)=====
 formatting_prompts_func, response_template = get_formatting_prompts_func(script_args.template, tokenizer.eos_token,
-                                                                         template_source=script_args.train_set_source_column,
-                                                                         template_target=script_args.train_set_target_column)
+                                                                         template_findings="findings",
+                                                                         template_background="background",
+                                                                         template_impression="impression")
 response_template_ids = tokenizer.encode(response_template, add_special_tokens=False)[2:]
 data_collator = DataCollatorForCompletionOnlyLM(response_template_ids, tokenizer=tokenizer)
 # data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
