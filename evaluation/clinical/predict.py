@@ -61,6 +61,7 @@ model = AutoModelForCausalLM.from_pretrained(args.base_model_path,
                                              torch_dtype=torch.float16).to('cuda')    # float16 to run inference of 7B model on 3090 GPU
 if args.lora_path:
     model = PeftModel.from_pretrained(model, args.lora_path, torch_dtype=torch.float16)
+model.eval()
 tokenizer = AutoTokenizer.from_pretrained(args.base_model_path, padding_side = 'left')
 
 # ============= Load dataset =============
@@ -100,7 +101,7 @@ for i in range(0, len(test_ds), args.pred_batch_size):
         max_new_tokens=args.max_new_token,
     )
     output_ids = output_ids.tolist()
-    for i in range(args.pred_batch_size):
+    for i in range(len(batch)):
         output_ids[i] = output_ids[i][len(encodes['input_ids'][i]) :]
 
     output = tokenizer.batch_decode(
@@ -108,7 +109,7 @@ for i in range(0, len(test_ds), args.pred_batch_size):
         spaces_between_special_tokens=False,
     )
 
-    for i in range(args.pred_batch_size):
+    for i in range(len(batch)):
         for special_token in tokenizer.special_tokens_map.values():
             if isinstance(special_token, list):
                 for special_tok in special_token:
@@ -119,7 +120,7 @@ for i in range(0, len(test_ds), args.pred_batch_size):
 
     # Dump answers
     with open(output_file_path, "a") as fout:
-        for i in range(args.pred_batch_size):
+        for i in range(len(batch)):
             row = batch.iloc[i]
             ans_json = {
                 "id": make_id(args.dataset_id_column_specs ,row),
@@ -130,5 +131,5 @@ for i in range(0, len(test_ds), args.pred_batch_size):
     # display output
     print(output[0])
 
-    pbar.update(args.pred_batch_size)
+    pbar.update(len(batch))
 pbar.close()

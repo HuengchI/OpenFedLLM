@@ -51,18 +51,6 @@ def compute_summary_metric(row):
     tgt_txts = [row['metric_ref']]
     gen_txts = [row['metric_gen']]
 
-    # Entity-based Scores: SGR & HR
-    SGRs = []
-    HRs = []
-    for src_txt, gen_txt, tgt_txt in zip(src_txts, gen_txts, tgt_txts):
-        sgr = metric_compute_SGR(src_txt, tgt_txt, gen_txt)
-        hr = metric_compute_HR(src_txt, gen_txt)
-        SGRs.append(sgr)
-        HRs.append(hr)
-
-    row['SGR'] = SGRs[0]
-    row['HR'] = HRs[0]
-
     # rouge
     rouge_scorer = RougeMetric()
     rouge_dict = rouge_scorer(gen_txts, tgt_txts)
