@@ -9,6 +9,9 @@ def make_id(id_spec:str, pd_row):
     id_str = '_'.join(id_str)
     return id_str
 
+def make_df_id_column(row, id_spec:str):
+    row['id'] = make_id(id_spec, row)
+    return row
 
 def cosine_learning_rate(current_round, total_rounds, initial_lr=0.001, min_lr=0):
     """

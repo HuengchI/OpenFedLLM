@@ -1,7 +1,8 @@
 do_score = True
 cuda_devices: str = "1"
 template_spec = "RRS.Trivial"
-train_set_source_column = "findings, background"
+# train_set_source_column = "findings, background"
+train_set_source_column = "findings"
 train_set_target_column = "impression"
 dataset_id_column_specs = "study_id, subject_id"
 
@@ -26,7 +27,7 @@ test_set_sample = str(200000)
 
 training_batch_size = 16
 training_batch_size_per_GPU = 16
-pred_batch_size = 16
+pred_batch_size = 32
 
 output_dir_base = os.path.abspath("./outputs")
 exp_name = "RRS"
@@ -100,6 +101,9 @@ score_cmd = [
     "evaluation/clinical/score.py",
     "--prediction_set_path", pred_set,
     "--test_set_path", test_set,
+    "--dataset_id_column_specs", dataset_id_column_specs,
+    "--metric_src_field", train_set_source_column,
+    "--metric_tgt_field", train_set_target_column,
 ]
 
 env = {

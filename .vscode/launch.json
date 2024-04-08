@@ -126,13 +126,20 @@
             "program": "//data/huengchi/.bin/anaconda3/envs/torch-2.1-py-3.10/bin/deepspeed",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "args": [
-                "--include=localhost:2",
+            "args":
+            [
+                "--include=localhost:1",
                 "evaluation/clinical/score.py",
                 "--prediction_set_path",
-                "/data/huengchi/Research/clinical/OpenFedLLM/outputs/OLMO-1B-Notes_20240319215043/evals/predictions.jsonl",
+                "/data/huengchi/Research/clinical/OpenFedLLM/outputs/RRS_20240407220326_scobicular-colorative-16/evals/predictions.jsonl",
                 "--test_set_path",
-                "/data/huengchi/Research/clinical/OpenFedLLM/datasets/mimic-iii-notes/NOTES_len6K_src5900_cov0.5_w_ESGs_test_split.jsonl",
+                "//data/huengchi/Datasets/MEDIQA2021/Task3/dev.json",
+                "--dataset_id_column_specs",
+                "study_id, subject_id",
+                "--metric_src_field",
+                "findings",
+                "--metric_tgt_field",
+                "impression",
             ],
             "env": {
                 "http_proxy": "http://10.249.42.241:41122",

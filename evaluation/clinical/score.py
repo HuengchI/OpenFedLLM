@@ -1,5 +1,6 @@
 import os
 from typing import Optional
+from functools import partial
 from tqdm import tqdm
 import pandas as pd
 from dataclasses import dataclass, field
@@ -8,7 +9,7 @@ from transformers import HfArgumentParser
 import sys
 THRID_PARTY_LIB_PATH = (
     ".",
-    "../../SPEER/", # esg_tools
+    # "../../SPEER/", # esg_tools
 )
 for path in THRID_PARTY_LIB_PATH:
     path = os.path.abspath(path)
@@ -17,7 +18,7 @@ for path in THRID_PARTY_LIB_PATH:
 
 from utils.metrics_predefined import RougeMetric, BleuMetric, ZHBertScoreMetric
 from utils import dump_args
-from esg_tools import metric_compute_HR, metric_compute_SGR
+from utils.utils import make_df_id_column
 
 
 @dataclass
@@ -25,8 +26,9 @@ class ScriptArguments:
     prediction_set_path: Optional[str] = field()
     test_set_path: Optional[str] = field()
     local_rank: Optional[int] = field(default=-1)
-    metric_src_field: Optional[str] = field(default='source')
-    metric_tgt_field: Optional[str] = field(default='target')
+    metric_src_field: Optional[str] = field(default='findings')
+    metric_tgt_field: Optional[str] = field(default='impression')
+    dataset_id_column_specs: Optional[str] = field(default='(unset)')
 
 parser = HfArgumentParser(ScriptArguments)
 args = parser.parse_args_into_dataclasses()[0]
@@ -36,10 +38,12 @@ args = parser.parse_args_into_dataclasses()[0]
 prediction_df = pd.read_json(args.prediction_set_path, lines=True, dtype=False)
 prediction_df = prediction_df.rename(columns={'output': 'metric_gen'})
 
-test_df = pd.read_json(args.test_set_path, lines=True, dtype=False)
+test_df = pd.read_json(args.test_set_path, dtype=False)
 test_df = test_df.rename(columns={args.metric_src_field: 'metric_src'}) # for metric calculation
 test_df = test_df.rename(columns={args.metric_tgt_field: 'metric_ref'})
-test_df = test_df.rename(columns={'example_id': 'id'})
+
+test_df = test_df.apply(partial(make_df_id_column, id_spec=args.dataset_id_column_specs),
+                        axis=1)
 test_df = test_df[['metric_src', 'metric_ref', 'id']]
 
 # ============= Process Datasets =============
