@@ -16,9 +16,14 @@ for path in THRID_PARTY_LIB_PATH:
     if path not in sys.path:
         sys.path.append(path)
 
-from utils.metrics_predefined import RougeMetric, BleuMetric, ZHBertScoreMetric
+from utils.metrics_predefined import (
+    RougeMetric,
+    BleuMetric,
+    ZHBertScoreMetric,
+    FactKBMetric,
+)
 from utils import dump_args
-from utils.utils import make_df_id_column
+from utils.utils import make_df_id_column, parse_spec
 
 
 @dataclass
@@ -26,9 +31,9 @@ class ScriptArguments:
     prediction_set_path: Optional[str] = field()
     test_set_path: Optional[str] = field()
     local_rank: Optional[int] = field(default=-1)
-    metric_src_field: Optional[str] = field(default='findings')
-    metric_tgt_field: Optional[str] = field(default='impression')
-    dataset_id_column_specs: Optional[str] = field(default='(unset)')
+    metric_src_field_specs: Optional[str] = field(default='findings, background')
+    metric_tgt_field_specs: Optional[str] = field(default='impression')
+    dataset_id_column_specs: Optional[str] = field(default='study_id, subject_id')
 
 parser = HfArgumentParser(ScriptArguments)
 args = parser.parse_args_into_dataclasses()[0]
@@ -36,24 +41,23 @@ args = parser.parse_args_into_dataclasses()[0]
 
 # ============= Load Datasets =============
 prediction_df = pd.read_json(args.prediction_set_path, lines=True, dtype=False)
-prediction_df = prediction_df.rename(columns={'output': 'metric_gen'})
 
 test_df = pd.read_json(args.test_set_path, dtype=False)
-test_df = test_df.rename(columns={args.metric_src_field: 'metric_src'}) # for metric calculation
-test_df = test_df.rename(columns={args.metric_tgt_field: 'metric_ref'})
+test_df = test_df[
+    list(set(parse_spec(args.metric_src_field_specs)+parse_spec(args.metric_tgt_field_specs)+parse_spec(args.dataset_id_column_specs)))
+    ]
 
 test_df = test_df.apply(partial(make_df_id_column, id_spec=args.dataset_id_column_specs),
                         axis=1)
-test_df = test_df[['metric_src', 'metric_ref', 'id']]
 
 # ============= Process Datasets =============
 result_df = pd.merge(prediction_df, test_df, on='id', how='left')
 
 # ============= Compute Metrics =============
 def compute_summary_metric(row):
-    src_txts = [row['metric_src']]
-    tgt_txts = [row['metric_ref']]
-    gen_txts = [row['metric_gen']]
+    src_txts = ['\n'.join([row[k] for k in parse_spec(args.metric_src_field_specs)])]
+    tgt_txts = ['\n'.join([row[k] for k in parse_spec(args.metric_tgt_field_specs)])]
+    gen_txts = [row['output']]
 
     # rouge
     rouge_scorer = RougeMetric()
@@ -62,19 +66,25 @@ def compute_summary_metric(row):
     for k,v in rouge_dict['score_details_per_sample'].items():# rouge-1, rouge-2, rouge-l
         row[k] = v[0]
 
-    # bleu-4
-    bleu_scorer = BleuMetric()
-    bleu_dict = bleu_scorer(gen_txts, tgt_txts)
+    # # bleu-4
+    # bleu_scorer = BleuMetric()
+    # bleu_dict = bleu_scorer(gen_txts, tgt_txts)
 
-    for k,v in bleu_dict['score_details_per_sample'].items():# bleu-4
-        row[k] = v[0]
+    # for k,v in bleu_dict['score_details_per_sample'].items():# bleu-4
+    #     row[k] = v[0]
 
-    # bert score
-    bert_scorer = ZHBertScoreMetric()
-    bs_dict = bert_scorer(gen_txts, tgt_txts)
+    # # bert score
+    # bert_scorer = ZHBertScoreMetric()
+    # bs_dict = bert_scorer(gen_txts, tgt_txts)
 
-    row['bs_f1'] = bs_dict['score_details_per_sample']['F1'][0]
-    row['bs_p'] = bs_dict['score_details_per_sample']['P'][0]
+    # row['bs_f1'] = bs_dict['score_details_per_sample']['F1'][0]
+    # row['bs_p'] = bs_dict['score_details_per_sample']['P'][0]
+
+    # factkb
+    factkb_scorer = FactKBMetric()
+
+    row['factkb_ref'] = factkb_scorer(src_txts, tgt_txts)['score_details_per_sample']['factkb'][0]
+    row['factkb_gen'] = factkb_scorer(src_txts, gen_txts)['score_details_per_sample']['factkb'][0]
 
     return row
 

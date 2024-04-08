@@ -1,16 +1,41 @@
 import math
 
+def parse_spec(spec_str)-> list[str]:
+    return [s.strip() for s in spec_str.split(",")]
+
+def collect_data_per_spec(spec_str, pd_row, return_decoded_spec=False):
+    columns = parse_spec(spec_str)
+    data = []
+    for id_col in columns:
+        data.append(str(pd_row[id_col]))
+    
+    output = data if not return_decoded_spec else (data, columns)
+
+    return output
 
 def make_id(id_spec:str, pd_row):
-    id_columnss = [s.strip() for s in id_spec.split(",")]
-    id_str = []
-    for id_col in id_columnss:
-        id_str.append(str(pd_row[id_col]))
-    id_str = '_'.join(id_str)
+    data = collect_data_per_spec(id_spec, pd_row)
+
+    data = [str(d) for d in data]
+    id_str = '_'.join(data)
     return id_str
+
+def make_src(src_spec:str, pd_row):
+    data, spec_keys = collect_data_per_spec(src_spec, pd_row, return_decoded_spec=True)
+
+    src_str = []
+    for spec_key, d in zip(spec_keys, data):
+        # src_str.append(f"{spec_key}: {d}")
+        src_str.append(f"{d}")
+    src_str = '\n'.join(src_str)
+    return src_str
 
 def make_df_id_column(row, id_spec:str):
     row['id'] = make_id(id_spec, row)
+    return row
+
+def make_df_src_column(row, src_spec: str):
+    row['src'] = make_src(src_spec, row)
     return row
 
 def cosine_learning_rate(current_round, total_rounds, initial_lr=0.001, min_lr=0):

@@ -21,8 +21,8 @@ model_name_or_path = os.path.abspath("/home/models/OLMo-1B/")
 train_set = "//data/huengchi/Datasets/MEDIQA2021/Task3/train.json"
 test_set = "//data/huengchi/Datasets/MEDIQA2021/Task3/dev.json"
 
-max_train_steps = str(5000)
-train_set_sample = str(5000)
+max_train_steps = str(10000)
+train_set_sample = str(10000)
 test_set_sample = str(200000)
 
 training_batch_size = 16
