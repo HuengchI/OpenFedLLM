@@ -2,8 +2,8 @@ do_score = True
 cuda_devices: str = "1"
 template_spec = "RRS.Trivial"
 # train_set_source_column = "findings, background"
-train_set_source_column = "findings"
-train_set_target_column = "impression"
+dataset_source_column_specs = "findings, background"
+dataset_target_column_specs = "impression"
 dataset_id_column_specs = "study_id, subject_id"
 
 #######################################################################
@@ -56,8 +56,8 @@ sft_cmd = [
     "--model_name_or_path", model_name_or_path,
     "--custom_local_dataset", train_set,
     "--template", template_spec,
-    "--train_set_source_column", train_set_source_column,
-    "--train_set_target_column", train_set_target_column,
+    "--train_set_source_column", dataset_source_column_specs,
+    "--train_set_target_column", dataset_target_column_specs,
     "--dataset_sample", train_set_sample,
     "--max_steps", max_train_steps,
     "--batch_size", str(training_batch_size_per_GPU),
@@ -102,8 +102,8 @@ score_cmd = [
     "--prediction_set_path", pred_set,
     "--test_set_path", test_set,
     "--dataset_id_column_specs", dataset_id_column_specs,
-    "--metric_src_field", train_set_source_column,
-    "--metric_tgt_field", train_set_target_column,
+    "--metric_src_field_specs", dataset_source_column_specs,
+    "--metric_tgt_field_specs", dataset_target_column_specs,
 ]
 
 env = {

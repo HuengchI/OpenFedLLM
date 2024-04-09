@@ -9,6 +9,7 @@ class ZHBertScoreMetric(MetricCalculator):
 
         global preloaded_bert_scorer_model
         if preloaded_bert_scorer_model is None:
+            print("loading preloaded_bert_scorer_model...")
             preloaded_bert_scorer_model = BERTScorer(lang='zh', rescale_with_baseline=True, device='cuda')
 
         self.scorer = preloaded_bert_scorer_model

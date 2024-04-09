@@ -128,7 +128,7 @@
             "justMyCode": false,
             "args":
             [
-                "--include=localhost:1",
+                "--include=localhost:0",
                 "evaluation/clinical/score.py",
                 "--prediction_set_path",
                 "/data/huengchi/Research/clinical/OpenFedLLM/outputs/RRS_20240408115041_walloper-parablepsy-41/evals/predictions.jsonl",
